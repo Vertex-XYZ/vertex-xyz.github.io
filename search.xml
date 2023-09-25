@@ -7,11 +7,423 @@
 <p>一切未经授权的网络攻击均为违法行为，互联网非法外之地。</p>
 </div>
 
-<div class="note green icon-padding flat"><i class="note-icon fas fa-rocket"></i><p>前言</p>
+<div class="note green icon-padding flat"><i class="note-icon fas fa-rocket"></i><p>ELF（Executable and Linkable Format）文件是一种常见的二进制文件格式，主要用于 UNIX 和 UNIX-like 系统（例如 Linux）上的可执行文件、目标文件、共享库和核心转储。</p>
 </div>
 
 <hr>
-<h1 id="0x01-ELF-概念"><a href="#0x01-ELF-概念" class="headerlink" title="0x01 ELF 概念"></a>0x01 ELF 概念</h1><h1 id="0x02-从代码到程序"><a href="#0x02-从代码到程序" class="headerlink" title="0x02 从代码到程序"></a>0x02 从代码到程序</h1><h2 id="2x01-GCC-编译过程"><a href="#2x01-GCC-编译过程" class="headerlink" title="2x01 GCC 编译过程"></a>2x01 GCC 编译过程</h2><h2 id="2x02-汇编语言"><a href="#2x02-汇编语言" class="headerlink" title="2x02 汇编语言"></a>2x02 汇编语言</h2><h1 id="0x03-总结"><a href="#0x03-总结" class="headerlink" title="0x03 总结"></a>0x03 总结</h1><h1 id="0x04-参考链接"><a href="#0x04-参考链接" class="headerlink" title="0x04 参考链接"></a>0x04 参考链接</h1>]]></content>
+<h1 id="1-ELF-文件格式"><a href="#1-ELF-文件格式" class="headerlink" title="1. ELF 文件格式"></a>1. ELF 文件格式</h1><p>一个 ELF 文件主要由以下三部分组成：</p>
+<ul>
+<li><p>ELF header（ELF 头部）：ELF 头包含了关于 ELF 文件的重要元数据如文件类型、ELF 版本、程序架构、入口地址、其他表的大小和偏移等等。</p>
+</li>
+<li><p>Program Header Table（程序头表）：程序头表描述了文件的段信息和如何将它们加载到内存中。</p>
+</li>
+<li><p>Section Header Table（节头表）： 节头表包含了文件中所有节的信息如代码、数据、符号表等。</p>
+</li>
+</ul>
+<p>CTF Wiki 上有一个关于链接视图比较形象的展示</p>
+<p><img src="/../../../image/20230925045003.png"></p>
+<h2 id="1-1-ELF-header（ELF-头部）"><a href="#1-1-ELF-header（ELF-头部）" class="headerlink" title="1.1 ELF header（ELF 头部）"></a>1.1 ELF header（ELF 头部）</h2><p>在 Linux 下可以使用 readelf 工具来查看 ELF Header。</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">readelf -h helloworld</span></span><br><span class="line">ELF Header:</span><br><span class="line">  Magic:   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00 </span><br><span class="line">  Class:                             ELF64</span><br><span class="line">  Data:                              2&#x27;s complement, little endian</span><br><span class="line">  Version:                           1 (current)</span><br><span class="line">  OS/ABI:                            UNIX - System V</span><br><span class="line">  ABI Version:                       0</span><br><span class="line">  Type:                              DYN (Position-Independent Executable file)</span><br><span class="line">  Machine:                           Advanced Micro Devices X86-64</span><br><span class="line">  Version:                           0x1</span><br><span class="line">  Entry point address:               0x1060</span><br><span class="line">  Start of program headers:          64 (bytes into file)</span><br><span class="line">  Start of section headers:          13984 (bytes into file)</span><br><span class="line">  Flags:                             0x0</span><br><span class="line">  Size of this header:               64 (bytes)</span><br><span class="line">  Size of program headers:           56 (bytes)</span><br><span class="line">  Number of program headers:         13</span><br><span class="line">  Size of section headers:           64 (bytes)</span><br><span class="line">  Number of section headers:         31</span><br><span class="line">  Section header string table index: 30</span><br></pre></td></tr></table></figure>
+
+<p>在 <a href="https://elixir.bootlin.com/linux/v6.5.4/source/include/uapi/linux/elf.h#L226">Linux 内核源码</a> 中找到了对于 ELF64 Header 的结构体</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">elf64_hdr</span> &#123;</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">char</span> e_ident[<span class="number">16</span>];	<span class="comment">/* ELF &quot;magic number&quot; */</span></span><br><span class="line">	Elf64_Half e_type;</span><br><span class="line">	Elf64_Half e_machine;</span><br><span class="line">	Elf64_Word e_version;</span><br><span class="line">	Elf64_Addr e_entry;	<span class="comment">/* Entry point virtual address */</span></span><br><span class="line">	Elf64_Off e_phoff;	<span class="comment">/* Program header table file offset */</span></span><br><span class="line">	Elf64_Off e_shoff;	<span class="comment">/* Section header table file offset */</span></span><br><span class="line">	Elf64_Word e_flags;</span><br><span class="line">	Elf64_Half e_ehsize;</span><br><span class="line">	Elf64_Half e_phentsize;</span><br><span class="line">	Elf64_Half e_phnum;</span><br><span class="line">	Elf64_Half e_shentsize;</span><br><span class="line">	Elf64_Half e_shnum;</span><br><span class="line">	Elf64_Half e_shstrndx;</span><br><span class="line">&#125; Elf64_Ehdr;</span><br></pre></td></tr></table></figure>
+
+<p>这里主要看这几个带注释的</p>
+<h3 id="1-1-1-e-ident"><a href="#1-1-1-e-ident" class="headerlink" title="1.1.1 e_ident"></a>1.1.1 e_ident</h3><p>e_ident 是一个包含 16 个字节的数组，用于存储与文件识别有关的信息。部分下标对应的含义如下表</p>
+<table>
+<thead>
+<tr>
+<th align="left">宏名称</th>
+<th align="left">下标</th>
+<th align="left">作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">EI_MAG0</td>
+<td align="left">0</td>
+<td align="left">文件标识</td>
+</tr>
+<tr>
+<td align="left">EI_MAG1</td>
+<td align="left">1</td>
+<td align="left">文件标识</td>
+</tr>
+<tr>
+<td align="left">EI_MAG2</td>
+<td align="left">2</td>
+<td align="left">文件标识</td>
+</tr>
+<tr>
+<td align="left">EI_MAG3</td>
+<td align="left">3</td>
+<td align="left">文件标识</td>
+</tr>
+<tr>
+<td align="left">EI_CLASS</td>
+<td align="left">4</td>
+<td align="left">文件类</td>
+</tr>
+<tr>
+<td align="left">EI_DATA</td>
+<td align="left">5</td>
+<td align="left">数据编码</td>
+</tr>
+<tr>
+<td align="left">EI_VERSION</td>
+<td align="left">6</td>
+<td align="left">文件版本</td>
+</tr>
+</tbody></table>
+<ul>
+<li><p><code>e_ident[EI_MAG0]</code> 到 <code>e_ident[EI_MAG3]</code> 通常称为 <strong>魔数</strong>，用于标识文件为 ELF 格式。从 <code>e_ident[EI_MAG0]</code> 到 <code>e_ident[EI_MAG3]</code> 对应 x7f \x45 \x4c \x46</p>
+</li>
+<li><p><code>e_ident[EI_CLASS]</code> 指定文件类别，\x00 -&gt; 无效，\x01 -&gt; 32 位程序，\x02 -&gt; 64 位程序</p>
+</li>
+<li><p><code>e_ident[EI_DATA]</code> 指定数据存储的字节序，\x00 -&gt; 无效，\x01 -&gt; 小段存储，\x02 -&gt; 大段存储</p>
+</li>
+<li><p><code>e_ident[EI_VERSION]</code> 指定 ELF 格式版本。</p>
+</li>
+</ul>
+<h3 id="1-1-2-e-entry"><a href="#1-1-2-e-entry" class="headerlink" title="1.1.2 e_entry"></a>1.1.2 e_entry</h3><p>指定了程序的入口点的虚拟地址。当程序被加载到内存中执行时，执行控制将从这个地址开始。</p>
+<h3 id="1-1-3-e-phoff"><a href="#1-1-3-e-phoff" class="headerlink" title="1.1.3 e_phoff"></a>1.1.3 e_phoff</h3><p>指定程序头表（Program Header Table）在 ELF 文件中的偏移量。</p>
+<h3 id="1-1-4-e-shoff"><a href="#1-1-4-e-shoff" class="headerlink" title="1.1.4 e_shoff"></a>1.1.4 e_shoff</h3><p>指定节头表（Section Header Table）在 ELF 文件中的偏移量。</p>
+<h2 id="1-2-Program-Header-Table（程序头表）"><a href="#1-2-Program-Header-Table（程序头表）" class="headerlink" title="1.2 Program Header Table（程序头表）"></a>1.2 Program Header Table（程序头表）</h2><p>Program Header Table （程序头表）是一个结构体数组，数组元素的大小与个数由 ELF Header 中的 <code>e_phentsize</code> 和 <code>e_phnum</code> 决定。在 64 位程序中每一个元素的类型是 <code>elf64_phdr</code>，描述了一个段或者其它系统在准备程序执行时所需要的信息。</p>
+<p><code>elf64_phdr</code> 的数据结构如下</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">elf64_phdr</span> &#123;</span></span><br><span class="line">	Elf64_Word p_type;</span><br><span class="line">	Elf64_Word p_flags;</span><br><span class="line">	Elf64_Off p_offset;	<span class="comment">/* Segment file offset */</span></span><br><span class="line">	Elf64_Addr p_vaddr;	<span class="comment">/* Segment virtual address */</span></span><br><span class="line">	Elf64_Addr p_paddr;	<span class="comment">/* Segment physical address */</span></span><br><span class="line">	Elf64_Xword p_filesz;	<span class="comment">/* Segment size in file */</span></span><br><span class="line">	Elf64_Xword p_memsz;	<span class="comment">/* Segment size in memory */</span></span><br><span class="line">	Elf64_Xword p_align;	<span class="comment">/* Segment alignment, file &amp; memory */</span></span><br><span class="line">&#125; Elf64_Phdr;</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-2-1-段类型"><a href="#1-2-1-段类型" class="headerlink" title="1.2.1 段类型"></a>1.2.1 段类型</h3><p>p_type 字段指定段的类型。常见的段类型如下所示：</p>
+<table>
+<thead>
+<tr>
+<th align="left">名字</th>
+<th align="left">取值</th>
+<th align="left">说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">PT_NULL</td>
+<td align="left">0</td>
+<td align="left">表明段未使用，其结构中其他成员都是未定义的。</td>
+</tr>
+<tr>
+<td align="left">PT_LOAD</td>
+<td align="left">1</td>
+<td align="left">此类型段为一个可加载的段，大小由 p_filesz 和 p_memsz 描述。文件中的字节被映射到相应内存段开始处。如果 p_memsz 大于 p_filesz，“剩余”的字节都要被置为0。p_filesz 不能大于 p_memsz。可加载的段在程序头部中按照 p_vaddr 的升序排列。</td>
+</tr>
+<tr>
+<td align="left">PT_DYNAMIC</td>
+<td align="left">2</td>
+<td align="left">此类型段给出动态链接信息。</td>
+</tr>
+<tr>
+<td align="left">PT_INTERP</td>
+<td align="left">3</td>
+<td align="left">此类型段给出了一个以 NULL 结尾的字符串的位置和长度，该字符串将被当作解释器调用。这种段类型仅对可执行文件有意义（也可能出现在共享目标文件中）。此外，这种段在一个文件中最多出现一次。而且这种类型的段存在的话，它必须在所有可加载段项的前面。</td>
+</tr>
+<tr>
+<td align="left">PT_NOTE</td>
+<td align="left">4</td>
+<td align="left">此类型段给出附加信息的位置和大小。</td>
+</tr>
+<tr>
+<td align="left">PT_SHLIB</td>
+<td align="left">5</td>
+<td align="left">该段类型被保留，不过语义未指定。而且，包含这种类型的段的程序不符合ABI标准。</td>
+</tr>
+<tr>
+<td align="left">PT_PHDR</td>
+<td align="left">6</td>
+<td align="left">该段类型的数组元素如果存在的话，则给出了程序头部表自身的大小和位置，既包括在文件中也包括在内存中的信息。此类型的段在文件中最多出现一次。<strong>此外，只有程序头部表是程序的内存映像的一部分时，它才会出现</strong>。如果此类型段存在，则必须在所有可加载段项目的前面。</td>
+</tr>
+<tr>
+<td align="left">PT_LOPROC~PT_HIPROC</td>
+<td align="left">0x70000000 ~0x7fffffff</td>
+<td align="left">此范围的类型保留给处理器专用语义。</td>
+</tr>
+</tbody></table>
+<h3 id="1-2-2-程序基地址"><a href="#1-2-2-程序基地址" class="headerlink" title="1.2.2 程序基地址"></a>1.2.2 程序基地址</h3><p>目前默认情况下编译出的可执行文件保存的地址都是相对地址，内存中任何段的虚拟地址与文件中对应的虚拟地址之间的差值对于任何一个可执行文件或共享对象来说是一个单一常量值。这个差值就是基地址，基地址的一个用途就是在动态链接期间重新定位程序。</p>
+<p>可执行文件或者共享目标文件的基地址是在执行过程中由以下三个数值计算的</p>
+<ul>
+<li>虚拟内存加载地址</li>
+<li>最大页面大小</li>
+<li>程序可加载段的最低虚拟地址</li>
+</ul>
+<p>要计算基地址，首先要确定可加载段中 p_vaddr 最小的内存虚拟地址，之后把该内存虚拟地址缩小为与之最近的最大页面的整数倍即是基地址。根据要加载到内存中的文件的类型，内存地址可能与 p_vaddr 相同也可能不同。</p>
+<h3 id="1-2-3-p-flags"><a href="#1-2-3-p-flags" class="headerlink" title="1.2.3 p_flags"></a>1.2.3 p_flags</h3><p>描述段的各种属性，如下所示</p>
+<p><img src="/../../../image/20230925063238.png"></p>
+<p>如果 p_flags 被设置为 0，那么该段是不可访问的</p>
+<p><img src="/../../../image/20230925063523.png"></p>
+<p>.text 段一般具有读和执行权限，但是不会有写权限。数据段一般具有写、读以及执行权限。</p>
+<h3 id="1-2-4-段内容"><a href="#1-2-4-段内容" class="headerlink" title="1.2.4 段内容"></a>1.2.4 段内容</h3><p>一个段可能包括一到多个节区，但是这并不会影响程序的加载。尽管如此，我们也必须需要各种各样的数据来使得程序可以执行以及动态链接等等。下面会给出一般情况下的段的内容。对于不同的段来说，它的节的顺序以及所包含的节的个数有所不同。此外，与处理相关的约束可能会改变对应的段的结构。</p>
+<p>如下所示，代码段只包含只读的指令以及数据。</p>
+<p><img src="/../../../image/20230925065508.png"></p>
+<p>数据段包含可写的数据以及以及指令</p>
+<p><img src="/../../../image/20230925065515.png"></p>
+<h2 id="1-3-Section-Header-Table（节头表）"><a href="#1-3-Section-Header-Table（节头表）" class="headerlink" title="1.3 Section Header Table（节头表）"></a>1.3 Section Header Table（节头表）</h2><p>使用 readelf 可以查看</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">readelf -S helloworld</span></span><br><span class="line">There are 31 section headers, starting at offset 0x36a0:</span><br><span class="line"></span><br><span class="line">Section Headers:</span><br><span class="line">  [Nr] Name              Type             Address           Offset</span><br><span class="line">       Size              EntSize          Flags  Link  Info  Align</span><br><span class="line">  [ 0]                   NULL             0000000000000000  00000000</span><br><span class="line">       0000000000000000  0000000000000000           0     0     0</span><br><span class="line">  [ 1] .interp           PROGBITS         0000000000000318  00000318</span><br><span class="line">       000000000000001c  0000000000000000   A       0     0     1</span><br><span class="line">  [ 2] .note.gnu.pr[...] NOTE             0000000000000338  00000338</span><br><span class="line">       0000000000000030  0000000000000000   A       0     0     8</span><br><span class="line">  [ 3] .note.gnu.bu[...] NOTE             0000000000000368  00000368</span><br><span class="line">       0000000000000024  0000000000000000   A       0     0     4</span><br><span class="line">  [ 4] .note.ABI-tag     NOTE             000000000000038c  0000038c</span><br><span class="line">       0000000000000020  0000000000000000   A       0     0     4</span><br><span class="line">  [ 5] .gnu.hash         GNU_HASH         00000000000003b0  000003b0</span><br><span class="line">       0000000000000024  0000000000000000   A       6     0     8</span><br><span class="line">  [ 6] .dynsym           DYNSYM           00000000000003d8  000003d8</span><br><span class="line">       00000000000000a8  0000000000000018   A       7     1     8</span><br><span class="line">  [ 7] .dynstr           STRTAB           0000000000000480  00000480</span><br><span class="line">       000000000000008d  0000000000000000   A       0     0     1</span><br><span class="line">  [ 8] .gnu.version      VERSYM           000000000000050e  0000050e</span><br><span class="line">       000000000000000e  0000000000000002   A       6     0     2</span><br><span class="line">  [ 9] .gnu.version_r    VERNEED          0000000000000520  00000520</span><br><span class="line">       0000000000000030  0000000000000000   A       7     1     8</span><br><span class="line">  [10] .rela.dyn         RELA             0000000000000550  00000550</span><br><span class="line">       00000000000000c0  0000000000000018   A       6     0     8</span><br><span class="line">  [11] .rela.plt         RELA             0000000000000610  00000610</span><br><span class="line">       0000000000000018  0000000000000018  AI       6    24     8</span><br><span class="line">  [12] .init             PROGBITS         0000000000001000  00001000</span><br><span class="line">       000000000000001b  0000000000000000  AX       0     0     4</span><br><span class="line">  [13] .plt              PROGBITS         0000000000001020  00001020</span><br><span class="line">       0000000000000020  0000000000000010  AX       0     0     16</span><br><span class="line">  [14] .plt.got          PROGBITS         0000000000001040  00001040</span><br><span class="line">       0000000000000010  0000000000000010  AX       0     0     16</span><br><span class="line">  [15] .plt.sec          PROGBITS         0000000000001050  00001050</span><br><span class="line">       0000000000000010  0000000000000010  AX       0     0     16</span><br><span class="line">  [16] .text             PROGBITS         0000000000001060  00001060</span><br><span class="line">       0000000000000107  0000000000000000  AX       0     0     16</span><br><span class="line">  [17] .fini             PROGBITS         0000000000001168  00001168</span><br><span class="line">       000000000000000d  0000000000000000  AX       0     0     4</span><br><span class="line">  [18] .rodata           PROGBITS         0000000000002000  00002000</span><br><span class="line">       0000000000000012  0000000000000000   A       0     0     4</span><br><span class="line">  [19] .eh_frame_hdr     PROGBITS         0000000000002014  00002014</span><br><span class="line">       0000000000000034  0000000000000000   A       0     0     4</span><br><span class="line">  [20] .eh_frame         PROGBITS         0000000000002048  00002048</span><br><span class="line">       00000000000000ac  0000000000000000   A       0     0     8</span><br><span class="line">  [21] .init_array       INIT_ARRAY       0000000000003db8  00002db8</span><br><span class="line">       0000000000000008  0000000000000008  WA       0     0     8</span><br><span class="line">  [22] .fini_array       FINI_ARRAY       0000000000003dc0  00002dc0</span><br><span class="line">       0000000000000008  0000000000000008  WA       0     0     8</span><br><span class="line">  [23] .dynamic          DYNAMIC          0000000000003dc8  00002dc8</span><br><span class="line">       00000000000001f0  0000000000000010  WA       7     0     8</span><br><span class="line">  [24] .got              PROGBITS         0000000000003fb8  00002fb8</span><br><span class="line">       0000000000000048  0000000000000008  WA       0     0     8</span><br><span class="line">  [25] .data             PROGBITS         0000000000004000  00003000</span><br><span class="line">       0000000000000010  0000000000000000  WA       0     0     8</span><br><span class="line">  [26] .bss              NOBITS           0000000000004010  00003010</span><br><span class="line">       0000000000000008  0000000000000000  WA       0     0     1</span><br><span class="line">  [27] .comment          PROGBITS         0000000000000000  00003010</span><br><span class="line">       000000000000002b  0000000000000001  MS       0     0     1</span><br><span class="line">  [28] .symtab           SYMTAB           0000000000000000  00003040</span><br><span class="line">       0000000000000360  0000000000000018          29    18     8</span><br><span class="line">  [29] .strtab           STRTAB           0000000000000000  000033a0</span><br><span class="line">       00000000000001e0  0000000000000000           0     0     1</span><br><span class="line">  [30] .shstrtab         STRTAB           0000000000000000  00003580</span><br><span class="line">       000000000000011a  0000000000000000           0     0     1</span><br></pre></td></tr></table></figure>
+
+<p>Section Header Table 用于定位 ELF 文件中的每个节的具体位置。ELF Header 中 <code>e_shoff</code> 字段指定从文件开头到节头表位置的字节偏移，<code>e_shnum</code> 指定节头表包含的项数，<code>e_shentsize</code> 指定每一项的字节大小。</p>
+<p>节头表也是一个数组，每个数组的元素的类型是 <code>efl64_shdr</code> 。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">elf64_shdr</span> &#123;</span></span><br><span class="line">  Elf64_Word sh_name;		<span class="comment">/* Section name, index in string tbl */</span></span><br><span class="line">  Elf64_Word sh_type;		<span class="comment">/* Type of section */</span></span><br><span class="line">  Elf64_Xword sh_flags;		<span class="comment">/* Miscellaneous section attributes */</span></span><br><span class="line">  Elf64_Addr sh_addr;		<span class="comment">/* Section virtual addr at execution */</span></span><br><span class="line">  Elf64_Off sh_offset;		<span class="comment">/* Section file offset */</span></span><br><span class="line">  Elf64_Xword sh_size;		<span class="comment">/* Size of section in bytes */</span></span><br><span class="line">  Elf64_Word sh_link;		<span class="comment">/* Index of another section */</span></span><br><span class="line">  Elf64_Word sh_info;		<span class="comment">/* Additional section information */</span></span><br><span class="line">  Elf64_Xword sh_addralign;	<span class="comment">/* Section alignment */</span></span><br><span class="line">  Elf64_Xword sh_entsize;	<span class="comment">/* Entry size if section holds table */</span></span><br><span class="line">&#125; Elf64_Shdr;</span><br></pre></td></tr></table></figure>
+
+<p>每个字段的含义如下</p>
+<table>
+<thead>
+<tr>
+<th align="left">成员</th>
+<th align="left">说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">sh_name</td>
+<td align="left">节名称，是节区头字符串表节区中（Section Header String Table Section）的索引，因此该字段实际是一个数值。在字符串表中的具体内容是以 NULL 结尾的字符串。</td>
+</tr>
+<tr>
+<td align="left">sh_type</td>
+<td align="left">根据节的内容和语义进行分类，具体的类型下面会介绍。</td>
+</tr>
+<tr>
+<td align="left">sh_flags</td>
+<td align="left">每一比特代表不同的标志，描述节是否可写，可执行，需要分配内存等属性。</td>
+</tr>
+<tr>
+<td align="left">sh_addr</td>
+<td align="left">如果节区将出现在进程的内存映像中，此成员给出节区的第一个字节应该在进程镜像中的位置。否则，此字段为 0。</td>
+</tr>
+<tr>
+<td align="left">sh_offset</td>
+<td align="left">给出节区的第一个字节与文件开始处之间的偏移。SHT_NOBITS 类型的节区不占用文件的空间，因此其 sh_offset 成员给出的是概念性的偏移。</td>
+</tr>
+<tr>
+<td align="left">sh_size</td>
+<td align="left">此成员给出节区的字节大小。除非节区的类型是 SHT_NOBITS ，否则该节占用文件中的 sh_size 字节。类型为SHT_NOBITS 的节区长度可能非零，不过却不占用文件中的空间。</td>
+</tr>
+<tr>
+<td align="left">sh_link</td>
+<td align="left">此成员给出节区头部表索引链接，其具体的解释依赖于节区类型。</td>
+</tr>
+<tr>
+<td align="left">sh_info</td>
+<td align="left">此成员给出附加信息，其解释依赖于节区类型。</td>
+</tr>
+<tr>
+<td align="left">sh_addralign</td>
+<td align="left">某些节区的地址需要对齐。例如，如果一个节区有一个 doubleword 类型的变量，那么系统必须保证整个节区按双字对齐。目前它仅允许为 0，以及 2 的正整数幂数。 0 和 1 表示没有对齐约束。</td>
+</tr>
+<tr>
+<td align="left">sh_entsize</td>
+<td align="left">某些节区中存在具有固定大小的表项的表，如符号表。对于这类节区，该成员给出每个表项的字节大小。反之，此成员取值为0。</td>
+</tr>
+</tbody></table>
+<h3 id="1-3-1-sh-type-（节类型）"><a href="#1-3-1-sh-type-（节类型）" class="headerlink" title="1.3.1 sh_type （节类型）"></a>1.3.1 sh_type （节类型）</h3><p>节名是一个字符串，只是在链接和编译过程中有意义，但它并不能真正地表示节的类型。对于编译器和链接器来说，主要决定节的属性是节的类型（<code>sh_type</code>）和节的标志位（<code>sh_flags</code>）。</p>
+<p>节的类型相关常量以<code>SHT_</code>开头，上述 <code>readelf -S</code> 命令执行的结果省略了该前缀。常见的节类型如下表所示：</p>
+<table>
+<thead>
+<tr>
+<th align="left">常量</th>
+<th align="left">值</th>
+<th align="left">含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">SHT_NULL</td>
+<td align="left">0</td>
+<td align="left">无效节</td>
+</tr>
+<tr>
+<td align="left">SHT_PROGBITS</td>
+<td align="left">1</td>
+<td align="left"><strong>程序节</strong>。代码节、数据节都是这种类型。</td>
+</tr>
+<tr>
+<td align="left">SHT_SYMTAB</td>
+<td align="left">2</td>
+<td align="left"><strong>符号表</strong></td>
+</tr>
+<tr>
+<td align="left">SHT_STRTAB</td>
+<td align="left">3</td>
+<td align="left"><strong>字符串表</strong></td>
+</tr>
+<tr>
+<td align="left">SHT_RELA</td>
+<td align="left">4</td>
+<td align="left"><strong>重定位表</strong>。该节包含了重定位信息。</td>
+</tr>
+<tr>
+<td align="left">SHT_HASH</td>
+<td align="left">5</td>
+<td align="left"><strong>符号表的哈希表</strong></td>
+</tr>
+<tr>
+<td align="left">SHT_DYNAMIC</td>
+<td align="left">6</td>
+<td align="left">动态链接信息</td>
+</tr>
+<tr>
+<td align="left">SHT_NOTE</td>
+<td align="left">7</td>
+<td align="left">提示性信息</td>
+</tr>
+<tr>
+<td align="left">SHT_NOBITS</td>
+<td align="left">8</td>
+<td align="left">表示该节在文件中没有内容。如<code>.bss</code>节</td>
+</tr>
+<tr>
+<td align="left">SHT_REL</td>
+<td align="left">9</td>
+<td align="left">该节包含了重定位信息</td>
+</tr>
+<tr>
+<td align="left">SHT_SHLIB</td>
+<td align="left">10</td>
+<td align="left">保留</td>
+</tr>
+<tr>
+<td align="left">SHT_DNYSYM</td>
+<td align="left">11</td>
+<td align="left"><strong>动态链接的符号表</strong></td>
+</tr>
+</tbody></table>
+<h3 id="1-3-2-sh-flag（节标志位）"><a href="#1-3-2-sh-flag（节标志位）" class="headerlink" title="1.3.2 sh_flag（节标志位）"></a>1.3.2 sh_flag（节标志位）</h3><p>节标志位表示该节在进程虚拟地址空间中的属性。如是否可写、是否可执行等。相关常量以<code>SHF_</code>开头。常见的节标志位如下表所示：</p>
+<table>
+<thead>
+<tr>
+<th align="left">常量</th>
+<th align="left">值</th>
+<th align="left">含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">SHF_WRITE</td>
+<td align="left">1</td>
+<td align="left">表示该节在进程空间中可写</td>
+</tr>
+<tr>
+<td align="left">SHF_ALLOC</td>
+<td align="left">2</td>
+<td align="left">表示该节在进程空间中需要分配空间。有些包含指示或控制信息的节不需要在进程空间中分配空间，就不会有这个标志。</td>
+</tr>
+<tr>
+<td align="left">SHF_EXECINSTR</td>
+<td align="left">4</td>
+<td align="left">表示该节在进程空间中可以被执行</td>
+</tr>
+</tbody></table>
+<h3 id="1-3-3-sh-link、sh-info（节链接信息）"><a href="#1-3-3-sh-link、sh-info（节链接信息）" class="headerlink" title="1.3.3 sh_link、sh_info（节链接信息）"></a>1.3.3 sh_link、sh_info（节链接信息）</h3><p>如果节的类型是与链接相关的（无论是动态链接还是静态链接），如<strong>重定位表、符号表、</strong>等，则<code>sh_link</code>、<code>sh_info</code>两个成员所包含的意义如下所示。其他类型的节，这两个成员没有意义。</p>
+<table>
+<thead>
+<tr>
+<th align="left">sh_type</th>
+<th align="left">sh_link</th>
+<th align="left">sh_info</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">SHT_DYNAMIC</td>
+<td align="left">该节所使用的<strong>字符串表</strong>在节头表中的下标</td>
+<td align="left">0</td>
+</tr>
+<tr>
+<td align="left">SHT_HASH</td>
+<td align="left">该节所使用的<strong>符号表</strong>在节头表中的下标</td>
+<td align="left">0</td>
+</tr>
+<tr>
+<td align="left">SHT_REL</td>
+<td align="left">该节所使用的<strong>相应符号表</strong>在节头表中的下标</td>
+<td align="left">该重定位表所作用的节在节头表中的下标</td>
+</tr>
+<tr>
+<td align="left">SHT_RELA</td>
+<td align="left">该节所使用的<strong>相应符号表</strong>在节头表中的下标</td>
+<td align="left">该重定位表所作用的节在节头表中的下标</td>
+</tr>
+<tr>
+<td align="left">SHT_SYMTAB</td>
+<td align="left">操作系统相关</td>
+<td align="left">操作系统相关</td>
+</tr>
+<tr>
+<td align="left">SHT_DYNSYM</td>
+<td align="left">操作系统相关</td>
+<td align="left">操作系统相关</td>
+</tr>
+<tr>
+<td align="left">other</td>
+<td align="left">SHN_UNDEF</td>
+<td align="left">0</td>
+</tr>
+</tbody></table>
+<h2 id="1-4-Sections（节）"><a href="#1-4-Sections（节）" class="headerlink" title="1.4 Sections（节）"></a>1.4 Sections（节）</h2><p>上面简单介绍了节类型，接下来我们来看一些比较重要的节。</p>
+<h3 id="1-4-1-节的分类"><a href="#1-4-1-节的分类" class="headerlink" title="1.4.1 节的分类"></a>1.4.1 节的分类</h3><h4 id="1-4-1-1-text-节"><a href="#1-4-1-1-text-节" class="headerlink" title="1.4.1.1 text 节"></a>1.4.1.1 text 节</h4><p><code>.text</code> 节是保存了程序代码指令的<strong>代码节</strong>。<strong>一段可执行程序，如果存在 phdr，则 <code>.text</code> 节就会存在于 <code>text</code> 段中</strong>。由于 <code>.text</code> 节保存了程序代码，所以节类型为 <code>SHT_PROGBITS</code>。</p>
+<h4 id="1-4-1-2-rodata-节"><a href="#1-4-1-2-rodata-节" class="headerlink" title="1.4.1.2 .rodata 节"></a>1.4.1.2 .rodata 节</h4><p><code>rodata</code> 节保存了只读的数据，如一行 C 语言代码中的字符串。由于 <code>.rodata</code> 节是只读的，所以只能存在于一个可执行文件的<strong>只读段</strong>中。因此，只能在 <code>text</code> 段（不是 <code>data</code> 段）中找到 <code>.rodata</code> 节。由于 <code>.rodata</code> 节是只读的，所以节类型为 <code>SHT_PROGBITS</code>。</p>
+<h4 id="1-4-1-3-plt-节（过程链接表）"><a href="#1-4-1-3-plt-节（过程链接表）" class="headerlink" title="1.4.1.3 .plt 节（过程链接表）"></a>1.4.1.3 .plt 节（过程链接表）</h4><p><code>.plt</code> 节也称为<strong>过程链接表（Procedure Linkage Table）</strong>，<strong>其包含了动态链接器调用从共享库导入的函数所必需的相关代码</strong>。由于 <code>.plt</code> 节保存了代码，所以节类型为 <code>SHT_PROGBITS</code>。</p>
+<h4 id="1-4-1-4-data-节"><a href="#1-4-1-4-data-节" class="headerlink" title="1.4.1.4 .data 节"></a>1.4.1.4 .data 节</h4><p><code>.data</code> 节存在于 <code>data</code> 段中，<strong>其保存了初始化的全局变量等数据</strong>。由于 <code>.data</code> 节保存了程序的变量数据，所以节类型为 <code>SHT_PROGBITS</code>。</p>
+<h4 id="1-4-1-5-bss-节"><a href="#1-4-1-5-bss-节" class="headerlink" title="1.4.1.5 .bss 节"></a>1.4.1.5 .bss 节</h4><p><code>.bss</code> 节存在于 <code>data</code> 段中，占用空间不超过 4 字节，仅表示这个节本身的空间。**<code>.bss</code> 节保存了未进行初始化的全局数据**。程序加载时数据被初始化为 0，在程序执行期间可以进行赋值。由于 <code>.bss</code> 节未保存实际的数据，所以节类型为 <code>SHT_NOBITS</code>。</p>
+<h4 id="1-4-1-6-got-plt-节（全局偏移表-过程链接表）"><a href="#1-4-1-6-got-plt-节（全局偏移表-过程链接表）" class="headerlink" title="1.4.1.6 .got.plt 节（全局偏移表 - 过程链接表）"></a>1.4.1.6 .got.plt 节（全局偏移表 - 过程链接表）</h4><p><code>.got</code> 节保存了<strong>全局偏移表</strong>。**<code>.got</code> 节和 <code>.plt</code> 节一起提供了对导入的共享库函数的访问入口，由动态链接器在运行时进行修改**。由于 <code>.got.plt</code> 节与程序执行有关，所以节类型为 <code>SHT_PROGBITS</code>。</p>
+<h4 id="1-4-7-dynsym-节（动态链接符号表）"><a href="#1-4-7-dynsym-节（动态链接符号表）" class="headerlink" title="1.4.7 .dynsym 节（动态链接符号表）"></a>1.4.7 .dynsym 节（动态链接符号表）</h4><p><code>.dynsym</code> 节保存在 <code>text</code> 段中。<strong>其保存了从共享库导入的动态符号表</strong>。节类型为 <code>SHT_DYNSYM</code>。</p>
+<h4 id="1-4-1-8-dynstr-节（动态链接字符串表）"><a href="#1-4-1-8-dynstr-节（动态链接字符串表）" class="headerlink" title="1.4.1.8 .dynstr 节（动态链接字符串表）"></a>1.4.1.8 .dynstr 节（动态链接字符串表）</h4><p><code>.dynstr</code> 保存了动态链接字符串表，表中存放了一系列字符串，这些字符串代表了符号名称，以空字符作为终止符。</p>
+<h4 id="1-4-1-9-rel-节（重定位表）"><a href="#1-4-1-9-rel-节（重定位表）" class="headerlink" title="1.4.1.9 .rel.* 节（重定位表）"></a>1.4.1.9 .rel.* 节（重定位表）</h4><p>重定位表保存了重定位相关的信息，<strong>这些信息描述了如何在链接或运行时，对ELF目标文件的某部分或者进程镜像进行补充或修改</strong>。由于重定位表保存了重定位相关的数据，所以节类型为 <code>SHT_REL</code>。</p>
+<h4 id="1-4-1-10-hash-节"><a href="#1-4-1-10-hash-节" class="headerlink" title="1.4.1.10 .hash 节"></a>1.4.1.10 .hash 节</h4><p><code>.hash</code> 节也称为 <code>.gnu.hash</code>，其保存了一个用于查找符号的散列表。</p>
+<h4 id="1-4-1-11-symtab-节（符号表）"><a href="#1-4-1-11-symtab-节（符号表）" class="headerlink" title="1.4.1.11 .symtab 节（符号表）"></a>1.4.1.11 .symtab 节（符号表）</h4><p><code>.symtab</code> 节是一个<code>ElfN_Sym</code> 的数组，保存了符号信息。节类型为<code>SHT_SYMTAB</code>。</p>
+<h4 id="1-4-1-12-strtab-节（字符串表）"><a href="#1-4-1-12-strtab-节（字符串表）" class="headerlink" title="1.4.1.12 .strtab 节（字符串表）"></a>1.4.1.12 .strtab 节（字符串表）</h4><p><code>.strtab</code> 节保存的是符号字符串表，表中的内容会被 <code>.symtab</code> 的 <code>ElfN_Sym</code> 结构中的 <code>st_name</code> 引用。节类型为 <code>SHT_STRTAB</code>。</p>
+<h4 id="1-4-1-13-ctors-节和-dtors-节"><a href="#1-4-1-13-ctors-节和-dtors-节" class="headerlink" title="1.4.1.13 .ctors 节和 .dtors 节"></a>1.4.1.13 .ctors 节和 .dtors 节</h4><p><code>.ctors</code>（<strong>构造器</strong>）节和 <code>.dtors</code>（<strong>析构器</strong>）节分别保存了指向构造函数和析构函数的函数指针，<strong>构造函数是在main函数执行之前需要执行的代码；析构函数是在main函数之后需要执行的代码</strong>。</p>
+<h3 id="1-4-2-符号表"><a href="#1-4-2-符号表" class="headerlink" title="1.4.2 符号表"></a>1.4.2 符号表</h3><p>使用 <code>readelf -s</code> 命令可以查看符号表的内容</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">readelf -s  helloworld</span></span><br><span class="line"></span><br><span class="line">Symbol table &#x27;.dynsym&#x27; contains 7 entries:</span><br><span class="line">   Num:    Value          Size Type    Bind   Vis      Ndx Name</span><br><span class="line">     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND </span><br><span class="line">     1: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND _[...]@GLIBC_2.34 (2)</span><br><span class="line">     2: 0000000000000000     0 NOTYPE  WEAK   DEFAULT  UND _ITM_deregisterT[...]</span><br><span class="line">     3: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND puts@GLIBC_2.2.5 (3)</span><br><span class="line">     4: 0000000000000000     0 NOTYPE  WEAK   DEFAULT  UND __gmon_start__</span><br><span class="line">     5: 0000000000000000     0 NOTYPE  WEAK   DEFAULT  UND _ITM_registerTMC[...]</span><br><span class="line">     6: 0000000000000000     0 FUNC    WEAK   DEFAULT  UND [...]@GLIBC_2.2.5 (3)</span><br><span class="line"></span><br><span class="line">Symbol table &#x27;.symtab&#x27; contains 36 entries:</span><br><span class="line">   Num:    Value          Size Type    Bind   Vis      Ndx Name</span><br><span class="line">     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND </span><br><span class="line">     1: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS Scrt1.o</span><br><span class="line">     2: 000000000000038c    32 OBJECT  LOCAL  DEFAULT    4 __abi_tag</span><br><span class="line">     3: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS crtstuff.c</span><br><span class="line">     4: 0000000000001090     0 FUNC    LOCAL  DEFAULT   16 deregister_tm_clones</span><br><span class="line">     5: 00000000000010c0     0 FUNC    LOCAL  DEFAULT   16 register_tm_clones</span><br><span class="line">     6: 0000000000001100     0 FUNC    LOCAL  DEFAULT   16 __do_global_dtors_aux</span><br><span class="line">     7: 0000000000004010     1 OBJECT  LOCAL  DEFAULT   26 completed.0</span><br><span class="line">     8: 0000000000003dc0     0 OBJECT  LOCAL  DEFAULT   22 __do_global_dtor[...]</span><br><span class="line">     9: 0000000000001140     0 FUNC    LOCAL  DEFAULT   16 frame_dummy</span><br><span class="line">    10: 0000000000003db8     0 OBJECT  LOCAL  DEFAULT   21 __frame_dummy_in[...]</span><br><span class="line">    11: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS helloworld.c</span><br><span class="line">    12: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS crtstuff.c</span><br><span class="line">    13: 00000000000020f0     0 OBJECT  LOCAL  DEFAULT   20 __FRAME_END__</span><br><span class="line">    14: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS </span><br><span class="line">    15: 0000000000003dc8     0 OBJECT  LOCAL  DEFAULT   23 _DYNAMIC</span><br><span class="line">    16: 0000000000002014     0 NOTYPE  LOCAL  DEFAULT   19 __GNU_EH_FRAME_HDR</span><br><span class="line">    17: 0000000000003fb8     0 OBJECT  LOCAL  DEFAULT   24 _GLOBAL_OFFSET_TABLE_</span><br><span class="line">    18: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND __libc_start_mai[...]</span><br><span class="line">    19: 0000000000000000     0 NOTYPE  WEAK   DEFAULT  UND _ITM_deregisterT[...]</span><br><span class="line">    20: 0000000000004000     0 NOTYPE  WEAK   DEFAULT   25 data_start</span><br><span class="line">    21: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND puts@GLIBC_2.2.5</span><br><span class="line">    22: 0000000000004010     0 NOTYPE  GLOBAL DEFAULT   25 _edata</span><br><span class="line">    23: 0000000000001168     0 FUNC    GLOBAL HIDDEN    17 _fini</span><br><span class="line">    24: 0000000000004000     0 NOTYPE  GLOBAL DEFAULT   25 __data_start</span><br><span class="line">    25: 0000000000000000     0 NOTYPE  WEAK   DEFAULT  UND __gmon_start__</span><br><span class="line">    26: 0000000000004008     0 OBJECT  GLOBAL HIDDEN    25 __dso_handle</span><br><span class="line">    27: 0000000000002000     4 OBJECT  GLOBAL DEFAULT   18 _IO_stdin_used</span><br><span class="line">    28: 0000000000004018     0 NOTYPE  GLOBAL DEFAULT   26 _end</span><br><span class="line">    29: 0000000000001060    38 FUNC    GLOBAL DEFAULT   16 _start</span><br><span class="line">    30: 0000000000004010     0 NOTYPE  GLOBAL DEFAULT   26 __bss_start</span><br><span class="line">    31: 0000000000001149    30 FUNC    GLOBAL DEFAULT   16 main</span><br><span class="line">    32: 0000000000004010     0 OBJECT  GLOBAL HIDDEN    25 __TMC_END__</span><br><span class="line">    33: 0000000000000000     0 NOTYPE  WEAK   DEFAULT  UND _ITM_registerTMC[...]</span><br><span class="line">    34: 0000000000000000     0 FUNC    WEAK   DEFAULT  UND __cxa_finalize@G[...]</span><br><span class="line">    35: 0000000000001000     0 FUNC    GLOBAL HIDDEN    12 _init</span><br></pre></td></tr></table></figure>
+
+<p>符号表使用的结构体为 <code>elf64_sym</code></p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">elf64_sym</span> &#123;</span></span><br><span class="line">  Elf64_Word st_name;		<span class="comment">/* Symbol name, index in string tbl */</span></span><br><span class="line">  <span class="type">unsigned</span> <span class="type">char</span>	st_info;	<span class="comment">/* Type and binding attributes */</span></span><br><span class="line">  <span class="type">unsigned</span> <span class="type">char</span>	st_other;	<span class="comment">/* No defined meaning, 0 */</span></span><br><span class="line">  Elf64_Half st_shndx;		<span class="comment">/* Associated section index */</span></span><br><span class="line">  Elf64_Addr st_value;		<span class="comment">/* Value of the symbol */</span></span><br><span class="line">  Elf64_Xword st_size;		<span class="comment">/* Associated symbol size */</span></span><br><span class="line">&#125; Elf64_Sym;</span><br></pre></td></tr></table></figure>
+
+<p>对于各字段的解释如下</p>
+<table>
+<thead>
+<tr>
+<th align="left">成员</th>
+<th align="left">含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">st_name</td>
+<td align="left">符号名。该值为该符号名在字符串表中的偏移地址。</td>
+</tr>
+<tr>
+<td align="left">st_value</td>
+<td align="left">符号对应的值。存放符号的值（可能是地址或位置偏移量）。</td>
+</tr>
+<tr>
+<td align="left">st_size</td>
+<td align="left">符号的大小。</td>
+</tr>
+<tr>
+<td align="left">st_other</td>
+<td align="left">0</td>
+</tr>
+<tr>
+<td align="left">st_shndx</td>
+<td align="left">符号所在的节</td>
+</tr>
+<tr>
+<td align="left">st_info</td>
+<td align="left">符号类型及绑定属性</td>
+</tr>
+</tbody></table>
+<p><strong>符号是对某些类型的数据或代码（如全局变量或函数）的符号引用，函数名或变量名就是符号名</strong>。例如，<code>printf()</code> 函数会在动态链接符号表 <code>.dynsym</code> 中存有一个指向该函数的符号项（以 <code>Elf_Sym</code> 数据结构表示）。在大多数共享库和动态链接可执行文件中，存在两个符号表。即 <code>.dynsym</code> 和 <code>.symtab</code>。</p>
+<p><strong><code>.dynsym</code> 保存了引用来自外部文件符号的全局符号</strong>。如 <code>printf</code> 库函数。**<code>.dynsym</code> 保存的符号是 <code>.symtab</code> 所保存符合的子集，<code>.symtab</code> 中还保存了可执行文件的本地符号**。如全局变量，代码中定义的本地函数等。</p>
+<p>通过 <code>readelf -S</code> 命令可以查看可执行文件的输出，一部分节标志位（ <code>sh_flags</code> ）被标记为了<strong>A（ALLOC）、WA（WRITE&#x2F;ALLOC）、AX（ALLOC&#x2F;EXEC）</strong>。其中，<code>.dynsym</code> 被标记为 ALLOC，而 <code>.symtab</code> 则没有标记。</p>
+<p>ALLOC 表示有该标记的节会在运行时分配并装载进入内存，而 <code>.symtab</code> 不是在运行时必需的，因此不会被装载到内存中。**<code>.dynsym</code> 保存的符号只能在运行时被解析，因此是运行时动态链接器所需的唯一符号**。<code>.dynsym</code> 对于动态链接可执行文件的执行是必需的，而 <code>.symtab</code> 只是用来进行调试和链接的。</p>
+<h3 id="1-4-3-字符串表"><a href="#1-4-3-字符串表" class="headerlink" title="1.4.3 字符串表"></a>1.4.3 字符串表</h3><p>类似于符号表，在大多数共享库和动态链接可执行文件中，也存在两个字符串表。即 <code>.dynstr</code> 和 <code>.strtab</code>，分别对应于 <code>.dynsym</code> 和 <code>symtab</code>。此外，还有一个 <code>.shstrtab</code> 的节头字符串表，用于保存节头表中用到的字符串，可通过 <code>sh_name</code> 进行索引。</p>
+<p>ELF文件中所有字符表的结构基本一致，如上图所示。</p>
+<h1 id="2-ELF-文件的组成部分"><a href="#2-ELF-文件的组成部分" class="headerlink" title="2. ELF 文件的组成部分"></a>2. ELF 文件的组成部分</h1><h1 id="3-动态链接和重定位"><a href="#3-动态链接和重定位" class="headerlink" title="3. 动态链接和重定位"></a>3. 动态链接和重定位</h1><h1 id="4-ELF-查看工具"><a href="#4-ELF-查看工具" class="headerlink" title="4. ELF 查看工具"></a>4. ELF 查看工具</h1><h1 id="参考链接"><a href="#参考链接" class="headerlink" title="参考链接"></a>参考链接</h1><ul>
+<li><p><a href="https://ciphersaw.me/ctf-wiki/executable/elf/elf_structure/">ELF文件基本结构 - CTF Wiki</a></p>
+</li>
+<li><p><a href="http://chuquan.me/2018/05/21/elf-introduce/">计算机那些事(4)——ELF文件结构 | 楚权的世界</a></p>
+</li>
+<li><p><a href="https://xinqiu.gitbooks.io/linux-inside-zh/content/Theory/linux-theory-2.html">ELF 文件格式 · Linux Inside 中文版</a></p>
+</li>
+</ul>
+]]></content>
       <categories>
         <category>PWN 从入门到入土</category>
       </categories>
