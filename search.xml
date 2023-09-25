@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title>PWN 入门基础：ELF 文件格式</title>
+    <url>/posts/90093aa8/</url>
+    <content><![CDATA[<div class="note danger flat"><p>请严格遵守网络安全法相关条例！此分享主要用于交流学习，请勿用于非法用途，一切后果自付。</p>
+<p>一切未经授权的网络攻击均为违法行为，互联网非法外之地。</p>
+</div>
+
+<div class="note green icon-padding flat"><i class="note-icon fas fa-rocket"></i><p>前言</p>
+</div>
+
+<hr>
+<h1 id="0x01-ELF-概念"><a href="#0x01-ELF-概念" class="headerlink" title="0x01 ELF 概念"></a>0x01 ELF 概念</h1><h1 id="0x02-从代码到程序"><a href="#0x02-从代码到程序" class="headerlink" title="0x02 从代码到程序"></a>0x02 从代码到程序</h1><h2 id="2x01-GCC-编译过程"><a href="#2x01-GCC-编译过程" class="headerlink" title="2x01 GCC 编译过程"></a>2x01 GCC 编译过程</h2><h2 id="2x02-汇编语言"><a href="#2x02-汇编语言" class="headerlink" title="2x02 汇编语言"></a>2x02 汇编语言</h2><h1 id="0x03-总结"><a href="#0x03-总结" class="headerlink" title="0x03 总结"></a>0x03 总结</h1><h1 id="0x04-参考链接"><a href="#0x04-参考链接" class="headerlink" title="0x04 参考链接"></a>0x04 参考链接</h1>]]></content>
+      <categories>
+        <category>PWN 从入门到入土</category>
+      </categories>
+      <tags>
+        <tag>PWN</tag>
+      </tags>
+  </entry>
+</search>
